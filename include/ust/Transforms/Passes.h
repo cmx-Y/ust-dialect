@@ -9,7 +9,7 @@ namespace ust {
 
 std::unique_ptr<OperationPass<ModuleOp>> createLoopBoundConstantPass();
 
-bool applyUSTLoopBoundConstant(ModuleOp &module);
+bool applyLoopBoundConstant(ModuleOp &module);
 
 /// Registers all UST transformation passes
 void registerUSTPasses();

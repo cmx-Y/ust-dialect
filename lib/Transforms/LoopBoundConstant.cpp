@@ -21,6 +21,7 @@ namespace ust {
 
 void LoopBoundConstant(func::FuncOp &func) {
   SmallVector<Operation *, 8> loopOps;
+  // Get all loop operations
   func.walk([&](Operation *op) {
     if (auto loopOp = dyn_cast<scf::ForOp>(op)) {
       loopOps.push_back(loopOp);
@@ -33,11 +34,23 @@ void LoopBoundConstant(func::FuncOp &func) {
     auto ub = loopOp.getUpperBound();
     auto step = loopOp.getStep();
     
+    // If the lower bound and upper bound are both constants, skip
     if (lb.getDefiningOp<arith::ConstantOp>() && ub.getDefiningOp<arith::ConstantOp>()) {
       continue;
     }
     else {
-      lb.dump();
+      OpBuilder ifBuilder(op);
+      //auto ifOp = ifBuilder.create<scf::IfOp>(op->getLoc(), lb , false);
+
+      // ::mlir::Region &getBody();
+      // Block &front();
+      // Operation &front();
+      Operation& funcFirstOp = func.getBody().front().front();
+      OpBuilder constBuilder(&funcFirstOp);
+      auto lbConstOp = constBuilder.create<arith::ConstantIndexOp>(funcFirstOp.getLoc(), 0);
+      auto ubConstOp = constBuilder.create<arith::ConstantIndexOp>(funcFirstOp.getLoc(), 8);
+      // loopOp.setLowerBound(lbConstOp);
+      // loopOp.setUpperBound(ubConstOp);
     }
   }
 

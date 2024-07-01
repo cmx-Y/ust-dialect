@@ -78,10 +78,22 @@ void LoopBoundConstant(func::FuncOp &func) {
       whileBuilder.setInsertionPointToEnd(afterBlock);
       auto ivIncOp = whileBuilder.create<arith::AddIOp>(
         whileOp.getLoc(), loopOp.getLowerBound(), ubConstOp.getResult());
-      
+
+
+      loopOp->moveAfter(ivIncOp);
+
+      // loopOp.walk([&](Operation *op) {
+      //   op->moveAfter(ivIncOp);
+      // });
+
+      // for (auto &arg : llvm::make_early_inc_range(*loopOp.getBody()))
+      //   arg.moveBefore(ivIncOp);
+
       SmallVector<Value> yieldArgs;
       yieldArgs.push_back(ivIncOp.getResult());
       auto yieleOp = whileBuilder.create<scf::YieldOp>(whileOp->getLoc(), yieldArgs);
+
+      func.dump();
 
       // Test OpBuilder
       // OpBuilder builder(op);

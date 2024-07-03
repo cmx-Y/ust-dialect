@@ -77,6 +77,7 @@ void LoopBoundConstant(func::FuncOp &func) {
       auto ivIncOp = whileBuilder.create<arith::AddIOp>(
         whileOp.getLoc(), loopOp.getLowerBound(), ubConstOp.getResult());
 
+      // Rewrite uses of the loop block arguments to the new while-loop "after" arguments
       Value iterVar = loopOp.getInductionVar();
       auto iterOp = whileBuilder.create<arith::AddIOp>(
         whileOp.getLoc(), iterVar, lb);
@@ -85,15 +86,16 @@ void LoopBoundConstant(func::FuncOp &func) {
       iterVar.replaceAllUsesExcept(iterOp.getResult(), iterOp);
 
       loopOp->moveBefore(ivIncOp);
+      // move memref.store(%16, %9, %arg3) after for loop
       loopOp->getResult(0).user_begin()->moveAfter(loopOp);
 
       SmallVector<Value> yieldArgs;
       yieldArgs.push_back(ivIncOp.getResult());
       auto yieleOp = whileBuilder.create<scf::YieldOp>(whileOp->getLoc(), yieldArgs);
 
-
       loopOp.setLowerBound(lbConstOp);
       loopOp.setUpperBound(ubConstOp);
+      
       // func.dump();
 
     }

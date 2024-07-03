@@ -46,8 +46,6 @@ void LoopBoundConstant(func::FuncOp &func) {
         funcFirstOp.getLoc(), 0);
       auto ubConstOp = constBuilder.create<arith::ConstantIndexOp>(
         funcFirstOp.getLoc(), 8);
-      // loopOp.setLowerBound(lbConstOp);
-      // loopOp.setUpperBound(ubConstOp);
 
       // Arguments for scf::WhileOp
       SmallVector<Type> lcvTypes;
@@ -79,12 +77,24 @@ void LoopBoundConstant(func::FuncOp &func) {
       auto ivIncOp = whileBuilder.create<arith::AddIOp>(
         whileOp.getLoc(), loopOp.getLowerBound(), ubConstOp.getResult());
 
-      loopOp->getResult(0).user_begin()->erase();
+      Value iterVar = loopOp.getInductionVar();
+      auto iterOp = whileBuilder.create<arith::AddIOp>(
+        whileOp.getLoc(), iterVar, lb);
+      Operation& loopFirstOp = loopOp.getLoopBody().front().front();
+      iterOp->moveBefore(&loopFirstOp);
+      iterVar.replaceAllUsesExcept(iterOp.getResult(), iterOp);
+
       loopOp->moveBefore(ivIncOp);
+      loopOp->getResult(0).user_begin()->moveAfter(loopOp);
 
       SmallVector<Value> yieldArgs;
       yieldArgs.push_back(ivIncOp.getResult());
       auto yieleOp = whileBuilder.create<scf::YieldOp>(whileOp->getLoc(), yieldArgs);
+
+
+      loopOp.setLowerBound(lbConstOp);
+      loopOp.setUpperBound(ubConstOp);
+      // func.dump();
 
     }
   }

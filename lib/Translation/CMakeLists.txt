@@ -3,12 +3,10 @@
 
 file(GLOB globbed *.cpp)
 
-add_mlir_library(MLIRHCLEmitHLSCpp
+add_mlir_library(MLIRUSTEmitHLSCpp
   ${globbed}
 
   LINK_LIBS PUBLIC
-  MLIRHeteroCL
-  MLIRHCLSupport
   MLIRMemRefDialect
   MLIRAnalysis
 )

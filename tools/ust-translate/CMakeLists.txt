@@ -21,7 +21,6 @@ target_link_libraries(ust-translate
   MLIRTranslateLib
   MLIRSupport
   MLIRUSTEmitHLSCpp
-  MLIRHeteroCL
   )
 
 

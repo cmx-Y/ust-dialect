@@ -22,13 +22,12 @@ namespace {
 class ModuleEmitter : public USTEmitterBase {
 public:
   using operand_range = Operation::operand_range;
-  explicit ModuleEmitter(HCLEmitterState &state) : HCLEmitterBase(state) {}
+  explicit ModuleEmitter(USTEmitterState &state) : USTEmitterBase(state) {}
 
   /// Top-level MLIR module emitter.
   void emitModule(ModuleOp module);
 
 private:
-  void emitInfoAndNewLine(Operation *op);
 
   void emitFunction(func::FuncOp func);
   void emitHostFunction(func::FuncOp func);
@@ -43,7 +42,6 @@ void ModuleEmitter::emitFunction(func::FuncOp func) {
 
   reduceIndent();
   os << "\n) {";
-  emitInfoAndNewLine(func);
 
   // Emit function body.
   addIndent();
@@ -64,8 +62,6 @@ void ModuleEmitter::emitHostFunction(func::FuncOp func) {
   // Emit function signature.
   os << "int main(int argc, char **argv) {\n";
   addIndent();
-
-  emitBlock(func.front());
 
   os << "  return 0;\n";
   reduceIndent();
@@ -161,6 +157,10 @@ void ust::registerEmitVivadoHLSTranslation() {
         // clang-format off
         registry.insert<
           mlir::scf::SCFDialect,
+          mlir::func::FuncDialect,
+          mlir::sparse_tensor::SparseTensorDialect,
+          mlir::arith::ArithDialect,
+          bufferization::BufferizationDialect
         >();
         // clang-format on
       });

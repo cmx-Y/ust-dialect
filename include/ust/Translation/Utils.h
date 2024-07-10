@@ -7,6 +7,7 @@
 #include "mlir/InitAllDialects.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "llvm/Support/raw_ostream.h"
+#include "ust/Translation/EmitVivadoHLS.h"
 
 using namespace mlir;
 using namespace ust;

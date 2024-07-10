@@ -95,9 +95,45 @@ private:
   /// C++ component emitters.
   void emitValue(Value val, unsigned rank = 0, bool isPtr = false,
                  std::string name = "");
+  void emitInfoAndNewLine(Operation *op);
+  void emitBlock(Block &block);
 
   void emitFunction(func::FuncOp func);
   void emitHostFunction(func::FuncOp func);
+};
+} // namespace
+
+//===----------------------------------------------------------------------===//
+// StmtVisitor, ExprVisitor, and PragmaVisitor Classes
+//===----------------------------------------------------------------------===//
+
+namespace {
+class StmtVisitor : public HLSCppVisitorBase<StmtVisitor, bool> {
+public:
+  StmtVisitor(ModuleEmitter &emitter) : emitter(emitter) {}
+
+  using HLSCppVisitorBase::visitOp;
+  /// SCF statements.
+  bool visitOp(scf::ParallelOp op) { return true; };
+  bool visitOp(scf::ReduceOp op) { return true; };
+  bool visitOp(scf::ReduceReturnOp op) { return true; };
+
+private:
+  ModuleEmitter &emitter;
+};
+} // namespace
+
+namespace {
+class ExprVisitor : public HLSCppVisitorBase<ExprVisitor, bool> {
+public:
+  ExprVisitor(ModuleEmitter &emitter) : emitter(emitter) {}
+
+  using HLSCppVisitorBase::visitOp;
+  /// Float binary expressions.
+  bool visitOp(arith::AddFOp op) { return true; }
+
+private:
+  ModuleEmitter &emitter;
 };
 } // namespace
 
@@ -125,6 +161,38 @@ void ModuleEmitter::emitValue(Value val, unsigned rank, bool isPtr,
     os << addName(val, isPtr, name);
   }
 }
+
+void ModuleEmitter::emitInfoAndNewLine(Operation *op) {
+  os << "\t//";
+  // Print line number.
+  if (auto loc = op->getLoc().dyn_cast<FileLineColLoc>())
+    os << " L" << loc.getLine();
+
+  // // Print schedule information.
+  // if (auto timing = getTiming(op))
+  //   os << ", [" << timing.getBegin() << "," << timing.getEnd() << ")";
+
+  // // Print loop information.
+  // if (auto loopInfo = getLoopInfo(op))
+  //   os << ", iterCycle=" << loopInfo.getIterLatency()
+  //      << ", II=" << loopInfo.getMinII();
+
+  os << "\n";
+}
+
+/// MLIR component and HLS C++ pragma emitters.
+void ModuleEmitter::emitBlock(Block &block) {
+  for (auto &op : block) {
+    if (ExprVisitor(*this).dispatchVisitor(&op))
+      continue;
+
+    if (StmtVisitor(*this).dispatchVisitor(&op))
+      continue;
+
+    emitError(&op, "can't be correctly emitted.");
+  }
+}
+
 
 void ModuleEmitter::emitFunction(func::FuncOp func) {
 
@@ -232,6 +300,9 @@ void ModuleEmitter::emitFunction(func::FuncOp func) {
 
   reduceIndent();
   os << "\n) {";
+  emitInfoAndNewLine(func);
+
+  emitBlock(func.front());
 
   // Emit function body.
   addIndent();

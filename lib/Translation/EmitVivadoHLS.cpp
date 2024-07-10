@@ -1,6 +1,8 @@
 #include "ust/Translation/EmitVivadoHLS.h"
 #include "ust/Dialect/Visitor.h"
 #include "ust/Translation/Utils.h"
+#include "ust/Support/Utils.h"
+
 #include "mlir/Dialect/Affine/IR/AffineValueMap.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/AffineExprVisitor.h"
@@ -13,6 +15,68 @@
 
 using namespace mlir;
 using namespace ust;
+
+//===----------------------------------------------------------------------===//
+// Utils
+//===----------------------------------------------------------------------===//
+
+// used for determine whether to generate C++ default types or ap_(u)int
+static bool BIT_FLAG = false;
+
+static SmallString<16> getTypeName(Type valType) {
+  if (auto arrayType = valType.dyn_cast<ShapedType>())
+    valType = arrayType.getElementType();
+
+  // Handle float types.
+  if (valType.isa<Float32Type>())
+    return SmallString<16>("float");
+  else if (valType.isa<Float64Type>())
+    return SmallString<16>("double");
+
+  // Handle integer types.
+  else if (valType.isa<IndexType>())
+    return SmallString<16>("int");
+  else if (auto intType = valType.dyn_cast<IntegerType>()) {
+    if (intType.getWidth() == 1) {
+      if (!BIT_FLAG)
+        return SmallString<16>("bool");
+      else
+        return SmallString<16>("ap_uint<1>");
+    } else {
+      std::string signedness = "";
+      if (intType.getSignedness() == IntegerType::SignednessSemantics::Unsigned)
+        signedness = "u";
+      if (!BIT_FLAG) {
+        switch (intType.getWidth()) {
+        case 8:
+        case 16:
+        case 32:
+        case 64:
+          return SmallString<16>(signedness + "int" +
+                                 std::to_string(intType.getWidth()) + "_t");
+        default:
+          return SmallString<16>("ap_" + signedness + "int<" +
+                                 std::to_string(intType.getWidth()) + ">");
+        }
+      } else {
+        return SmallString<16>("ap_" + signedness + "int<" +
+                               std::to_string(intType.getWidth()) + ">");
+      }
+    }
+  }
+
+  // Handle (custom) fixed point types.
+  else
+    assert(1 == 0 && "Got unsupported type.");
+
+  return SmallString<16>();
+}
+
+static SmallString<16> getTypeName(Value val) {
+  // Handle memref, tensor, and vector types.
+  auto valType = val.getType();
+  return getTypeName(valType);
+}
 
 //===----------------------------------------------------------------------===//
 // ModuleEmitter Class Declaration
@@ -28,17 +92,143 @@ public:
   void emitModule(ModuleOp module);
 
 private:
+  /// C++ component emitters.
+  void emitValue(Value val, unsigned rank = 0, bool isPtr = false,
+                 std::string name = "");
 
   void emitFunction(func::FuncOp func);
   void emitHostFunction(func::FuncOp func);
 };
 } // namespace
 
+/// C++ component emitters.
+void ModuleEmitter::emitValue(Value val, unsigned rank, bool isPtr,
+                              std::string name) {
+  assert(!(rank && isPtr) && "should be either an array or a pointer.");
+
+  // Value has been declared before or is a constant number.
+  if (isDeclared(val)) {
+    os << getName(val);
+    for (unsigned i = 0; i < rank; ++i)
+      os << "[iv" << i << "]";
+    return;
+  }
+
+  os << getTypeName(val) << " ";
+
+  if (name == "") {
+    // Add the new value to nameTable and emit its name.
+    os << addName(val, isPtr);
+    for (unsigned i = 0; i < rank; ++i)
+      os << "[iv" << i << "]";
+  } else {
+    os << addName(val, isPtr, name);
+  }
+}
+
 void ModuleEmitter::emitFunction(func::FuncOp func) {
+
+  if (func.getBlocks().empty())
+    // This is a declaration.
+    return;
+
+  if (func.getBlocks().size() > 1)
+    emitError(func, "has more than one basic blocks.");
 
   // Emit function signature.
   os << "void " << func.getName() << "(\n";
   addIndent();
+
+  // This vector is to record all ports of the function.
+  SmallVector<Value, 8> portList;
+
+  // Emit input arguments.
+  unsigned argIdx = 0;
+  std::vector<std::string> input_args;
+  if (func->hasAttr("inputs")) {
+    std::string input_names =
+        func->getAttr("inputs").cast<StringAttr>().getValue().str();
+    input_args = split_names(input_names);
+  }
+  std::string output_names;
+  if (func->hasAttr("outputs")) {
+    output_names = func->getAttr("outputs").cast<StringAttr>().getValue().str();
+    // suppose only one output
+    input_args.push_back(output_names);
+  }
+  std::string itypes = "";
+  if (func->hasAttr("itypes"))
+    itypes = func->getAttr("itypes").cast<StringAttr>().getValue().str();
+  else {
+    for (unsigned i = 0; i < func.getNumArguments(); ++i)
+      itypes += "x";
+  }
+  for (auto &arg : func.getArguments()) {
+    indent();
+    fixUnsignedType(arg, itypes[argIdx] == 'u');
+    if (arg.getType().isa<ShapedType>()) {
+      auto tensor = arg.getType().dyn_cast<RankedTensorType>();
+      if (tensor) {
+        os << getTypeName(tensor.getElementType()) << " ";
+        os << addName(arg, false, "");
+        for (auto &shape : tensor.getShape())
+          os << "[" << shape << "]";
+      }
+    } else {
+      if (input_args.size() == 0) {
+        emitValue(arg);
+      } else {
+        emitValue(arg, 0, false, input_args[argIdx]);
+      }
+    }
+
+    portList.push_back(arg);
+    if (argIdx++ != func.getNumArguments() - 1)
+      os << ",\n";
+  }
+
+  // Emit results.
+  auto args = func.getArguments();
+  std::string otypes = "";
+  if (func->hasAttr("otypes"))
+    otypes = func->getAttr("otypes").cast<StringAttr>().getValue().str();
+  else {
+    for (unsigned i = 0; i < func.getNumArguments(); ++i)
+      otypes += "x";
+  }
+  if (auto funcReturn =
+          dyn_cast<func::ReturnOp>(func.front().getTerminator())) {
+    unsigned idx = 0;
+    for (auto result : funcReturn.getOperands()) {
+      if (std::find(args.begin(), args.end(), result) == args.end()) {
+        os << ",\n";
+        indent();
+
+        // TODO: a known bug, cannot return a value twice, e.g. return %0, %0
+        // : index, index. However, typically this should not happen.
+        fixUnsignedType(result, otypes[idx] == 'u');
+        if (result.getType().isa<ShapedType>()) {
+          auto tensor = result.getType().dyn_cast<RankedTensorType>();
+          if (tensor) {
+            os << getTypeName(tensor.getElementType()) << " ";
+            os << addName(result, false, "");
+            for (auto &shape : tensor.getShape())
+              os << "[" << shape << "]";
+          }
+        } else {
+          // In Vivado HLS, pointer indicates the value is an output.
+          if (output_names != "")
+            emitValue(result, /*rank=*/0, /*isPtr=*/true);
+          else
+            emitValue(result, /*rank=*/0, /*isPtr=*/true, output_names);
+        }
+
+        portList.push_back(result);
+      }
+      idx += 1;
+    }
+  } else
+    emitError(func, "doesn't have a return operation as terminator.");
 
   reduceIndent();
   os << "\n) {";

@@ -40,6 +40,6 @@ make -j8
 ## Examples
 ```bash
 cd ust-dialect/build
-./bin/ust-opt ../test/SparseTensor/csr_spmv.mlir
-./bin/ust-translate ../test/SparseTensor/csr_spmv.mlir -emit-vivado-hls
+./bin/ust-opt ../test/SparseTensor/examples/csr_spmv.mlir
+./bin/ust-translate ../test/SparseTensor/examples/csr_spmv.mlir -emit-vivado-hls
 ```

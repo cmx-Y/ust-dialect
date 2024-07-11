@@ -44,7 +44,7 @@ public:
 
             // SCF statements.
             scf::ForOp, scf::IfOp, scf::ParallelOp, scf::ReduceOp,
-            scf::ReduceReturnOp, scf::YieldOp>(
+            scf::ReduceReturnOp, scf::YieldOp, scf::WhileOp, scf::ConditionOp>(
             [&](auto opNode) -> ResultType {
               return thisCast->visitOp(opNode, args...);
             })
@@ -106,6 +106,8 @@ public:
   HANDLE(scf::ReduceOp);
   HANDLE(scf::ReduceReturnOp);
   HANDLE(scf::YieldOp);
+  HANDLE(scf::WhileOp);
+  HANDLE(scf::ConditionOp);
 
 #undef HANDLE
 };

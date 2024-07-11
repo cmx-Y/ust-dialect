@@ -91,6 +91,7 @@ public:
   /// SCF statement emitters.
   void emitScfFor(scf::ForOp op);
   void emitScfYield(scf::YieldOp op);
+  void emitScfWhile(scf::WhileOp op);
 
   /// Special operation emitters.
   void emitConstant(arith::ConstantOp op);
@@ -141,6 +142,8 @@ public:
   bool visitOp(scf::ReduceOp op) { return true; };
   bool visitOp(scf::ReduceReturnOp op) { return true; };
   bool visitOp(scf::YieldOp op) { return emitter.emitScfYield(op), true;};
+  bool visitOp(scf::WhileOp op) { return emitter.emitScfWhile(op), true;};
+  bool visitOp(scf::ConditionOp op) { return true; };
 
   /// Memref-related statements.
   bool visitOp(memref::LoadOp op) { return emitter.emitLoad(op), true;}
@@ -444,6 +447,21 @@ void ModuleEmitter::emitScfYield(scf::YieldOp op) {
       //emitNestedLoopTail(rank);
     }
   }
+}
+
+void ModuleEmitter::emitScfWhile(scf::WhileOp op) {
+  indent();
+  os << "while (";
+  emitBlock(op.getBefore().front());
+  os << ") {";
+  emitInfoAndNewLine(op);
+
+  addIndent();
+  emitBlock(op.getAfter().front());
+  reduceIndent();
+
+  indent();
+  os << "}\n";
 }
 
 

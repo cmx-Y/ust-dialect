@@ -88,6 +88,14 @@ public:
   using operand_range = Operation::operand_range;
   explicit ModuleEmitter(USTEmitterState &state) : USTEmitterBase(state) {}
 
+  /// Special operation emitters.
+  void emitConstant(arith::ConstantOp op);
+
+  /// Sparse tensor-related statement emitters.
+  void emitToPositions(sparse_tensor::ToPositionsOp op);
+  void emitToCoordinates(sparse_tensor::ToCoordinatesOp op);
+  void emitToValues(sparse_tensor::ToValuesOp op);
+  
   /// Top-level MLIR module emitter.
   void emitModule(ModuleOp module);
 
@@ -118,6 +126,11 @@ public:
   bool visitOp(scf::ReduceOp op) { return true; };
   bool visitOp(scf::ReduceReturnOp op) { return true; };
 
+  /// Sparse tensor-related statements.
+  bool visitOp(sparse_tensor::ToPositionsOp op) { return emitter.emitToPositions(op), true; }
+  bool visitOp(sparse_tensor::ToCoordinatesOp op) { return emitter.emitToCoordinates(op), true; }
+  bool visitOp(sparse_tensor::ToValuesOp op) { return emitter.emitToValues(op), true; }
+
 private:
   ModuleEmitter &emitter;
 };
@@ -131,6 +144,9 @@ public:
   using HLSCppVisitorBase::visitOp;
   /// Float binary expressions.
   bool visitOp(arith::AddFOp op) { return true; }
+
+   /// Special operations.
+  bool visitOp(arith::ConstantOp op) { return emitter.emitConstant(op), true; }
 
 private:
   ModuleEmitter &emitter;
@@ -191,6 +207,82 @@ void ModuleEmitter::emitBlock(Block &block) {
 
     emitError(&op, "can't be correctly emitted.");
   }
+}
+
+void ModuleEmitter::emitConstant(arith::ConstantOp op) {
+  // This indicates the constant type is scalar (float, integer, or bool).
+  if (isDeclared(op.getResult()))
+    return;
+
+  if (auto denseAttr = op.getValue().dyn_cast<DenseElementsAttr>()) {
+    indent();
+    Value result = op.getResult(); // memref
+    fixUnsignedType(result, op->hasAttr("unsigned"));
+    //emitArrayDecl(result);
+    os << " = {";
+    auto type = op.getResult().getType().cast<ShapedType>().getElementType();
+
+    unsigned elementIdx = 0;
+    for (auto element : denseAttr.getValues<Attribute>()) {
+      if (type.isF32()) {
+        auto value = element.cast<FloatAttr>().getValue().convertToFloat();
+        if (std::isfinite(value))
+          os << value;
+        else if (value > 0)
+          os << "INFINITY";
+        else
+          os << "-INFINITY";
+
+      } else if (type.isF64()) {
+        auto value = element.cast<FloatAttr>().getValue().convertToDouble();
+        if (std::isfinite(value))
+          os << value;
+        else if (value > 0)
+          os << "INFINITY";
+        else
+          os << "-INFINITY";
+
+      } else if (type.isInteger(1))
+        os << element.cast<BoolAttr>().getValue();
+      else if (type.isIntOrIndex())
+        os << element.cast<IntegerAttr>().getValue();
+      else
+        emitError(op, "array has unsupported element type.");
+
+      if (elementIdx++ != denseAttr.getNumElements() - 1)
+        os << ", ";
+    }
+    os << "};";
+    emitInfoAndNewLine(op);
+  } else
+    emitError(op, "has unsupported constant type.");
+}
+
+void ModuleEmitter::emitToPositions(sparse_tensor::ToPositionsOp op) {
+  indent();
+  auto tensor = op.getTensor().getType().dyn_cast<RankedTensorType>();
+  if (tensor) {
+    os << getTypeName(tensor.getElementType()) << " ";
+  }
+  os << "pos[3];\n";
+}
+
+void ModuleEmitter::emitToCoordinates(sparse_tensor::ToCoordinatesOp op) {
+  indent();
+  auto tensor = op.getTensor().getType().dyn_cast<RankedTensorType>();
+  if (tensor) {
+    os << getTypeName(tensor.getElementType()) << " ";
+  }
+  os << "coord[8];\n";
+}
+
+void ModuleEmitter::emitToValues(sparse_tensor::ToValuesOp op) {
+  indent();
+  auto tensor = op.getTensor().getType().dyn_cast<RankedTensorType>();
+  if (tensor) {
+    os << getTypeName(tensor.getElementType()) << " ";
+  }
+  os << "values[8];\n";
 }
 
 
@@ -302,10 +394,10 @@ void ModuleEmitter::emitFunction(func::FuncOp func) {
   os << "\n) {";
   emitInfoAndNewLine(func);
 
-  emitBlock(func.front());
-
   // Emit function body.
   addIndent();
+
+  emitBlock(func.front());
 
   reduceIndent();
   os << "}\n";

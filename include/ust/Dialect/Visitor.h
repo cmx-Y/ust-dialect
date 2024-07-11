@@ -23,6 +23,13 @@ public:
     auto *thisCast = static_cast<ConcreteType *>(this);
     return TypeSwitch<Operation *, ResultType>(op)
         .template Case<
+             // Special operations.
+            arith::ConstantOp,
+
+             //SparseTensor operations
+            sparse_tensor::ToPositionsOp, sparse_tensor::ToCoordinatesOp,
+            sparse_tensor::ToValuesOp,
+
             // SCF statements.
             scf::ForOp, scf::IfOp, scf::ParallelOp, scf::ReduceOp,
             scf::ReduceReturnOp, scf::YieldOp>(
@@ -50,6 +57,14 @@ public:
   ResultType visitOp(OPTYPE op, ExtraArgs... args) {                           \
     return static_cast<ConcreteType *>(this)->visitUnhandledOp(op, args...);   \
   }
+
+  //Special operations.
+  HANDLE(arith::ConstantOp);
+
+  //SparseTensor operations
+  HANDLE(sparse_tensor::ToPositionsOp);
+  HANDLE(sparse_tensor::ToCoordinatesOp);
+  HANDLE(sparse_tensor::ToValuesOp);
 
   // SCF statements.
   HANDLE(scf::ForOp);

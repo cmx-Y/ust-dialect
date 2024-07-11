@@ -23,10 +23,22 @@ public:
     auto *thisCast = static_cast<ConcreteType *>(this);
     return TypeSwitch<Operation *, ResultType>(op)
         .template Case<
-             // Special operations.
-            arith::ConstantOp,
+            // Float binary expressions.
+            arith::CmpFOp, arith::AddFOp, arith::SubFOp, arith::MulFOp,
 
-             //SparseTensor operations
+            // Integer binary expressions.
+            arith::CmpIOp, arith::AddIOp, arith::SubIOp, arith::MulIOp,
+
+            // Memref-related statements.
+            memref::LoadOp, memref::StoreOp,
+
+            // Bufferization operations
+            bufferization::ToMemrefOp, bufferization::ToTensorOp,
+
+            // Special operations.
+            arith::ConstantOp, func::ReturnOp,
+
+            //SparseTensor operations
             sparse_tensor::ToPositionsOp, sparse_tensor::ToCoordinatesOp,
             sparse_tensor::ToValuesOp,
 
@@ -58,10 +70,31 @@ public:
     return static_cast<ConcreteType *>(this)->visitUnhandledOp(op, args...);   \
   }
 
-  //Special operations.
-  HANDLE(arith::ConstantOp);
+  // Float binary expressions.
+  HANDLE(arith::CmpFOp);
+  HANDLE(arith::AddFOp);
+  HANDLE(arith::SubFOp);
+  HANDLE(arith::MulFOp);
 
-  //SparseTensor operations
+  // Integer binary expressions.
+  HANDLE(arith::CmpIOp);
+  HANDLE(arith::AddIOp);
+  HANDLE(arith::SubIOp);
+  HANDLE(arith::MulIOp);
+
+  // Memref-related statements.
+  HANDLE(memref::LoadOp);
+  HANDLE(memref::StoreOp);
+
+  // Bufferization operations
+  HANDLE(bufferization::ToMemrefOp);
+  HANDLE(bufferization::ToTensorOp);
+
+  // Special operations.
+  HANDLE(arith::ConstantOp);
+  HANDLE(func::ReturnOp);
+
+  // SparseTensor operations
   HANDLE(sparse_tensor::ToPositionsOp);
   HANDLE(sparse_tensor::ToCoordinatesOp);
   HANDLE(sparse_tensor::ToValuesOp);

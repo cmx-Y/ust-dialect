@@ -88,13 +88,27 @@ public:
   using operand_range = Operation::operand_range;
   explicit ModuleEmitter(USTEmitterState &state) : USTEmitterBase(state) {}
 
+  /// SCF statement emitters.
+  void emitScfFor(scf::ForOp op);
+  void emitScfYield(scf::YieldOp op);
+
   /// Special operation emitters.
   void emitConstant(arith::ConstantOp op);
+
+  /// Memref-related statement emitters.
+  void emitLoad(memref::LoadOp op);
+  void emitStore(memref::StoreOp op);
+
+  /// Bufferization-related statement emitters.
+  void emitToMemref(bufferization::ToMemrefOp op);
 
   /// Sparse tensor-related statement emitters.
   void emitToPositions(sparse_tensor::ToPositionsOp op);
   void emitToCoordinates(sparse_tensor::ToCoordinatesOp op);
   void emitToValues(sparse_tensor::ToValuesOp op);
+
+  /// Standard operation emitters.
+  void emitBinary(Operation *op, const char *syntax);
   
   /// Top-level MLIR module emitter.
   void emitModule(ModuleOp module);
@@ -122,9 +136,19 @@ public:
 
   using HLSCppVisitorBase::visitOp;
   /// SCF statements.
+  bool visitOp(scf::ForOp op) { return emitter.emitScfFor(op), true; };
   bool visitOp(scf::ParallelOp op) { return true; };
   bool visitOp(scf::ReduceOp op) { return true; };
   bool visitOp(scf::ReduceReturnOp op) { return true; };
+  bool visitOp(scf::YieldOp op) { return emitter.emitScfYield(op), true;};
+
+  /// Memref-related statements.
+  bool visitOp(memref::LoadOp op) { return emitter.emitLoad(op), true;}
+  bool visitOp(memref::StoreOp op) { return true; }
+
+  /// Bufferization-related statements.
+  bool visitOp(bufferization::ToMemrefOp op) { return emitter.emitToMemref(op), true; }
+  bool visitOp(bufferization::ToTensorOp op) { return true; }
 
   /// Sparse tensor-related statements.
   bool visitOp(sparse_tensor::ToPositionsOp op) { return emitter.emitToPositions(op), true; }
@@ -142,11 +166,23 @@ public:
   ExprVisitor(ModuleEmitter &emitter) : emitter(emitter) {}
 
   using HLSCppVisitorBase::visitOp;
+
   /// Float binary expressions.
-  bool visitOp(arith::AddFOp op) { return true; }
+  bool visitOp(arith::CmpFOp op) {return true; }
+  bool visitOp(arith::AddFOp op) { return emitter.emitBinary(op, "+"), true; }
+  bool visitOp(arith::SubFOp op) { return emitter.emitBinary(op, "-"), true; }
+  bool visitOp(arith::MulFOp op) { return emitter.emitBinary(op, "*"), true; }
+
+  /// Integer binary expressions.
+  bool visitOp(arith::CmpIOp op) { return true; }
+  bool visitOp(arith::AddIOp op) { return emitter.emitBinary(op, "+"), true; }
+  bool visitOp(arith::SubIOp op) { return emitter.emitBinary(op, "-"), true; }
+  bool visitOp(arith::MulIOp op) { return emitter.emitBinary(op, "*"), true; }
+
 
    /// Special operations.
   bool visitOp(arith::ConstantOp op) { return emitter.emitConstant(op), true; }
+  bool visitOp(func::ReturnOp op) { return true; }
 
 private:
   ModuleEmitter &emitter;
@@ -258,13 +294,28 @@ void ModuleEmitter::emitConstant(arith::ConstantOp op) {
     emitError(op, "has unsupported constant type.");
 }
 
+// TODO: Support emmiting pipeline loop for bufferization::ToMemrefOp
+void ModuleEmitter::emitToMemref(bufferization::ToMemrefOp op) {
+  indent();
+  auto tensor = op.getTensor().getType().dyn_cast<RankedTensorType>();
+  if (tensor) {
+    os << getTypeName(tensor.getElementType()) << " ";
+  }
+  os << addName(op.getResult(), false, "");
+  for (auto &shape : tensor.getShape())
+    os << "[" << shape << "]";
+  os << ";\n";
+}
+
+// TODO: How to decide pos array's size
 void ModuleEmitter::emitToPositions(sparse_tensor::ToPositionsOp op) {
   indent();
   auto tensor = op.getTensor().getType().dyn_cast<RankedTensorType>();
   if (tensor) {
     os << getTypeName(tensor.getElementType()) << " ";
   }
-  os << "pos[3];\n";
+  os << addName(op.getResult(), false, "");
+  os << "[3];\n";
 }
 
 void ModuleEmitter::emitToCoordinates(sparse_tensor::ToCoordinatesOp op) {
@@ -273,7 +324,8 @@ void ModuleEmitter::emitToCoordinates(sparse_tensor::ToCoordinatesOp op) {
   if (tensor) {
     os << getTypeName(tensor.getElementType()) << " ";
   }
-  os << "coord[8];\n";
+  os << addName(op.getResult(), false, "");
+  os << "[8];\n";
 }
 
 void ModuleEmitter::emitToValues(sparse_tensor::ToValuesOp op) {
@@ -282,7 +334,116 @@ void ModuleEmitter::emitToValues(sparse_tensor::ToValuesOp op) {
   if (tensor) {
     os << getTypeName(tensor.getElementType()) << " ";
   }
-  os << "values[8];\n";
+  os << addName(op.getResult(), false, "");
+  os << "[8];\n";
+}
+
+void ModuleEmitter::emitScfFor(scf::ForOp op) {
+  indent();
+  os << "for (";
+  auto iterVar = op.getInductionVar();
+
+  // Emit lower bound.
+  emitValue(iterVar);
+  os << " = ";
+  emitValue(op.getLowerBound());
+  os << "; ";
+
+  // Emit upper bound.
+  emitValue(iterVar);
+  os << " < ";
+  emitValue(op.getUpperBound());
+  os << "; ";
+
+  // Emit increase step.
+  emitValue(iterVar);
+  os << " += ";
+  emitValue(op.getStep());
+  os << ") {";
+  emitInfoAndNewLine(op);
+
+  addIndent();
+  emitBlock(*op.getBody());
+  reduceIndent();
+
+  indent();
+  os << "}\n";
+}
+
+void ModuleEmitter::emitLoad(memref::LoadOp op) {
+  indent();
+  Value result = op.getResult();
+  fixUnsignedType(result, op->hasAttr("unsigned"));
+  emitValue(result);
+  os << " = ";
+  auto memref = op.getMemRef();
+  emitValue(memref);
+  auto attr = memref.getType().dyn_cast<MemRefType>().getMemorySpace();
+  if (attr &&
+      attr.cast<StringAttr>().getValue().str().substr(0, 6) == "stream") {
+    auto attr_str = attr.cast<StringAttr>().getValue().str();
+    int S_index = attr_str.find("S"); // spatial
+    int T_index = attr_str.find("T"); // temporal
+    if (S_index != -1 && T_index != -1) {
+      auto st_str = attr_str.substr(S_index, T_index - S_index + 1);
+      std::reverse(st_str.begin(), st_str.end());
+      auto indices = op.getIndices();
+      st_str = st_str.substr(0, indices.size());
+      std::reverse(st_str.begin(), st_str.end());
+      for (unsigned i = 0; i < indices.size(); ++i) {
+        if (st_str[i] == 'S') {
+          os << "[";
+          emitValue(indices[i]);
+          os << "]";
+        }
+      }
+    }
+    os << ".read(); // ";
+    emitValue(memref); // comment
+  }
+  for (auto index : op.getIndices()) {
+    os << "[";
+    emitValue(index);
+    os << "]";
+  }
+  os << ";";
+  emitInfoAndNewLine(op);
+}
+
+void ModuleEmitter::emitBinary(Operation *op, const char *syntax) {
+  // auto rank = emitNestedLoopHead(op->getResult(0));
+  indent();
+  Value result = op->getResult(0);
+  fixUnsignedType(result, op->hasAttr("unsigned"));
+  emitValue(result);
+  os << " = ";
+  emitValue(op->getOperand(0));
+  os << " " << syntax << " ";
+  emitValue(op->getOperand(1));
+  os << ";";
+  emitInfoAndNewLine(op);
+  // emitNestedLoopTail(rank);
+}
+
+void ModuleEmitter::emitScfYield(scf::YieldOp op) {
+  if (op.getNumOperands() == 0)
+    return;
+
+  // For now, only and scf::If operations will use scf::Yield to return
+  // generated values.
+  if (auto parentOp = dyn_cast<scf::IfOp>(op->getParentOp())) {
+    unsigned resultIdx = 0;
+    for (auto result : parentOp.getResults()) {
+      // unsigned rank = emitNestedLoopHead(result);
+      indent();
+      emitValue(result);
+      os << " = ";
+      emitValue(op.getOperand(resultIdx++));
+      os << ";";
+      emitInfoAndNewLine(op);
+      //emitNestedLoopTail(rank);
+    }
+  }
 }
 
 

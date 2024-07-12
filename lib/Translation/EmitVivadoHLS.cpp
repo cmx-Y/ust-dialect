@@ -110,6 +110,7 @@ public:
 
   /// Standard operation emitters.
   void emitBinary(Operation *op, const char *syntax);
+  void emitCmpI(arith::CmpIOp op);
   
   /// Top-level MLIR module emitter.
   void emitModule(ModuleOp module);
@@ -177,14 +178,14 @@ public:
   bool visitOp(arith::MulFOp op) { return emitter.emitBinary(op, "*"), true; }
 
   /// Integer binary expressions.
-  bool visitOp(arith::CmpIOp op) { return true; }
+  bool visitOp(arith::CmpIOp op) { return emitter.emitCmpI(op), true; }
   bool visitOp(arith::AddIOp op) { return emitter.emitBinary(op, "+"), true; }
   bool visitOp(arith::SubIOp op) { return emitter.emitBinary(op, "-"), true; }
   bool visitOp(arith::MulIOp op) { return emitter.emitBinary(op, "*"), true; }
 
 
    /// Special operations.
-  bool visitOp(arith::ConstantOp op) { return emitter.emitConstant(op), true; }
+  bool visitOp(arith::ConstantOp op) { return true; }
   bool visitOp(func::ReturnOp op) { return true; }
 
 private:
@@ -426,6 +427,12 @@ void ModuleEmitter::emitBinary(Operation *op, const char *syntax) {
   os << ";";
   emitInfoAndNewLine(op);
   // emitNestedLoopTail(rank);
+}
+
+void ModuleEmitter::emitCmpI(arith::CmpIOp op) {
+  emitValue(op->getOperand(0));
+  os << " " << "<" << " ";
+  emitValue(op->getOperand(1));
 }
 
 void ModuleEmitter::emitScfYield(scf::YieldOp op) {

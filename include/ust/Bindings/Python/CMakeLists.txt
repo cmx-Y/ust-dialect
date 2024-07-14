@@ -1,6 +1,7 @@
 
 include(AddMLIRPython)
 
+find_package(pybind11 CONFIG REQUIRED)
 
 # The directory at which the Python import tree begins.
 # See documentation for `declare_mlir_python_sources`'s ROOT_DIR
@@ -9,6 +10,12 @@ set(UST_MLIR_PYTHON_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ust")
 set(UST_MLIR_PYTHON_PACKAGES_DIR "${PROJECT_BINARY_DIR}/tools/ust/python_packages")
 set(MLIR_PYTHON_SOURCE_DIR "${MLIR_MAIN_SRC_DIR}/lib/Bindings/Python")
 set(UST_PYTHON_SOURCE_DIR "${PROJECT_SOURCE_DIR}/lib/Bindings/Python")
+
+# Debug print
+message(STATUS "UST_MLIR_PYTHON_ROOT_DIR: ${UST_MLIR_PYTHON_ROOT_DIR}")
+message(STATUS "UST_MLIR_PYTHON_PACKAGES_DIR: ${UST_MLIR_PYTHON_PACKAGES_DIR}")
+message(STATUS "MLIR_PYTHON_SOURCE_DIR: ${MLIR_PYTHON_SOURCE_DIR}")
+message(STATUS "UST_PYTHON_SOURCE_DIR: ${UST_PYTHON_SOURCE_DIR}")
 
 include_directories(${MLIR_PYTHON_SOURCE_DIR})
 
@@ -30,9 +37,9 @@ declare_mlir_python_sources(USTMLIRPythonSources.Dialects
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT USTMLIRPythonSources.Dialects
   ROOT_DIR "${UST_MLIR_PYTHON_ROOT_DIR}"
-  TD_FILE dialects/HeteroCLBinding.td
+  # TD_FILE dialects/HeteroCLBinding.td
   SOURCES
-    dialects/ust.py
+    # dialects/ust.py
     build_ir.py
     exceptions.py
     __init__.py

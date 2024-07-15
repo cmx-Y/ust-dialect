@@ -104,10 +104,6 @@ PYBIND11_MODULE(_ust, m) {
       throw py::value_error("failed to apply the post-transform optimization");
   });
 
-  // Declare customized types and attributes
-  populateUSTIRTypes(ust_m);
-  populateUSTAttributes(ust_m);
-
   // Codegen APIs.
   ust_m.def("emit_vhls", &emitVivadoHls);
 

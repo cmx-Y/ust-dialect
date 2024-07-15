@@ -7,8 +7,8 @@
 namespace mlir {
 namespace python {
 
-void populateUSTIRTypes(pybind11::module &m);
-void populateUSTAttributes(pybind11::module &m);
+// void populateUSTIRTypes(pybind11::module &m);
+// void populateUSTAttributes(pybind11::module &m);
 
 } // namespace python
 } // namespace mlir

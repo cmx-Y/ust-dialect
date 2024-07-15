@@ -39,7 +39,7 @@ declare_mlir_dialect_python_bindings(
   ROOT_DIR "${UST_MLIR_PYTHON_ROOT_DIR}"
   # TD_FILE dialects/HeteroCLBinding.td
   SOURCES
-    # dialects/ust.py
+    dialects/ust.py
     build_ir.py
     exceptions.py
     __init__.py

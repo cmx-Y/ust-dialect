@@ -1,4 +1,6 @@
+import io
 from ust_mlir.ir import Context, Module
+from ust_mlir.dialects import ust as ust_d
 
 def test_codegen():
     mlir_code = """
@@ -34,7 +36,16 @@ def test_codegen():
     """
     ctx = Context()
     mod = Module.parse(mlir_code, ctx)
-    mod.dump()
+    # mod.dump()
+    buf = io.StringIO()
+    res = ust_d.emit_vhls(mod, buf)
+    if res:
+        buf.seek(0)
+        hls_code = buf.read()
+        print(hls_code)
+        print("Done HLS code generation")
+    else:
+        raise RuntimeError("HLS codegen failed")
 
 
 if __name__ == "__main__":

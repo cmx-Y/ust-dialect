@@ -1,4 +1,4 @@
-#include "ust/Conversion/Passes.h"
+#include "ust-c/Dialect/Registration.h"
 #include "ust/Transforms/Passes.h"
 
 #include "mlir/Conversion/Passes.h"
@@ -19,7 +19,6 @@ void ustMlirRegisterAllDialects(MlirContext context) {
                   mlir::affine::AffineDialect, mlir::math::MathDialect,
                   mlir::memref::MemRefDialect, mlir::pdl::PDLDialect,
                   mlir::transform::TransformDialect>();
-  mlir::ust::registerTransformDialectExtension(registry);
   unwrap(context)->appendDialectRegistry(registry);
   unwrap(context)->loadAllAvailableDialects();
 }

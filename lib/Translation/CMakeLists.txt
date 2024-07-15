@@ -9,4 +9,5 @@ add_mlir_library(MLIRUSTEmitHLSCpp
   LINK_LIBS PUBLIC
   MLIRMemRefDialect
   MLIRAnalysis
+  MLIRUSTSupport
 )

@@ -86,6 +86,13 @@ export PYTHONPATH=$(pwd)/tools/ust/python_packages/ust_core:${PYTHONPATH}
 ## Examples
 ```bash
 cd ust-dialect/build
+
+# cpp tools examples
 ./bin/ust-opt ../test/SparseTensor/examples/csr_spmv.mlir
 ./bin/ust-translate ../test/SparseTensor/examples/csr_spmv.mlir -emit-vivado-hls
+
+# python binding example
+conda activate ust-dev
+export PYTHONPATH=$(pwd)/tools/ust/python_packages/ust_core:${PYTHONPATH}
+python ../test/Bindings/test_codegen.py
 ```

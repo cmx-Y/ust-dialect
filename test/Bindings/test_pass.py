@@ -1,11 +1,11 @@
 # cd build
-# python ../test/Bindings/test_codegen.py
+# python ../test/Bindings/test_pass.py
 
 import io
 from ust_mlir.ir import Context, Module
 from ust_mlir.dialects import ust as ust_d
 
-def test_codegen():
+def test_pass():
     mlir_code = """
     module {
         func.func @matvec(%arg0: tensor<32x64xf64, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>>, %arg1: tensor<64xf64>, %arg2: tensor<32xf64>) -> tensor<32xf64> {
@@ -39,17 +39,12 @@ def test_codegen():
     """
     ctx = Context()
     mod = Module.parse(mlir_code, ctx)
-    # mod.dump()
-    buf = io.StringIO()
-    res = ust_d.emit_vhls(mod, buf)
-    if res:
-        buf.seek(0)
-        hls_code = buf.read()
-        print(hls_code)
-        print("Done HLS code generation")
-    else:
-        raise RuntimeError("HLS codegen failed")
+    print("Before loop_bound_constant pass:")
+    mod.dump()
+    ust_d.loop_bound_constant(mod)
+    print("After loop_bound_constant pass:")
+    mod.dump()
 
 
 if __name__ == "__main__":
-    test_codegen()
+    test_pass()

@@ -60,6 +60,16 @@ private:
 };
 
 //===----------------------------------------------------------------------===//
+// Pass APIs
+//===----------------------------------------------------------------------===//
+
+static bool loopBoundConstant(MlirModule &mlir_mod) {
+  py::gil_scoped_release();
+  auto mod = unwrap(mlir_mod);
+  return applyLoopBoundConstant(mod);
+}
+
+//===----------------------------------------------------------------------===//
 // Emission APIs
 //===----------------------------------------------------------------------===//
 
@@ -103,6 +113,9 @@ PYBIND11_MODULE(_ust, m) {
     if (failed(pm.run(module)))
       throw py::value_error("failed to apply the post-transform optimization");
   });
+
+  // Pass APIs.
+  ust_m.def("loop_bound_constant", &loopBoundConstant);
 
   // Codegen APIs.
   ust_m.def("emit_vhls", &emitVivadoHls);

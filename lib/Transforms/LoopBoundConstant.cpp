@@ -81,7 +81,7 @@ void LoopBoundConstant(func::FuncOp &func) {
       Value iterVar = loopOp.getInductionVar();
       auto iterOp = whileBuilder.create<arith::AddIOp>(
         whileOp.getLoc(), iterVar, lb);
-      Operation& loopFirstOp = loopOp.getLoopBody().front().front();
+      Operation& loopFirstOp = loopOp.getBody()->front();
       iterOp->moveBefore(&loopFirstOp);
       iterVar.replaceAllUsesExcept(iterOp.getResult(), iterOp);
 

@@ -1,11 +1,12 @@
+#sparse = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>
 module {
-  func.func @matvec(%arg0: tensor<32x64xf64, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>>, %arg1: tensor<64xf64>, %arg2: tensor<32xf64>) -> tensor<32xf64> {
-    %c32 = arith.constant 32 : index
-    %c0 = arith.constant 0 : index
+  func.func @matvec(%arg0: tensor<32x64xf64, #sparse>, %arg1: tensor<64xf64>, %arg2: tensor<32xf64>) -> tensor<32xf64> {
     %c1 = arith.constant 1 : index
-    %0 = sparse_tensor.positions %arg0 {level = 1 : index} : tensor<32x64xf64, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>> to memref<?xindex>
-    %1 = sparse_tensor.coordinates %arg0 {level = 1 : index} : tensor<32x64xf64, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>> to memref<?xindex>
-    %2 = sparse_tensor.values %arg0 : tensor<32x64xf64, #sparse_tensor.encoding<{ lvlTypes = [ "dense", "compressed" ] }>> to memref<?xf64>
+    %c0 = arith.constant 0 : index
+    %c32 = arith.constant 32 : index
+    %0 = sparse_tensor.positions %arg0 {level = 1 : index} : tensor<32x64xf64, #sparse> to memref<?xindex>
+    %1 = sparse_tensor.coordinates %arg0 {level = 1 : index} : tensor<32x64xf64, #sparse> to memref<?xindex>
+    %2 = sparse_tensor.values %arg0 : tensor<32x64xf64, #sparse> to memref<?xf64>
     %3 = bufferization.to_memref %arg1 : memref<64xf64>
     %4 = bufferization.to_memref %arg2 : memref<32xf64>
     scf.for %arg3 = %c0 to %c32 step %c1 {
@@ -27,4 +28,3 @@ module {
     return %5 : tensor<32xf64>
   }
 }
-

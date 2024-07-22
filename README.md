@@ -79,8 +79,9 @@ cmake -G "Unix Makefiles" .. \
    -DCMAKE_CXX_FLAGS="-Wfatal-errors -std=c++17"
 make -j8
 
-# Export the generated UST-MLIR Python library
-export PYTHONPATH=$(pwd)/tools/ust/python_packages/ust_core:${PYTHONPATH}
+# Install the generated UST-MLIR Python library
+cd tools/ust/python_packages/ust_core/
+python3 -m pip install -e .
 ```
 
 ## Examples
@@ -93,6 +94,5 @@ cd ust-dialect/build
 
 # python binding example
 conda activate ust-dev
-export PYTHONPATH=$(pwd)/tools/ust/python_packages/ust_core:${PYTHONPATH}
 python ../test/Bindings/test_codegen.py
 ```

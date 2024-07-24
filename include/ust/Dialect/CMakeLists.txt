@@ -1,0 +1,11 @@
+set(LLVM_TARGET_DEFINITIONS USTOps.td)
+mlir_tablegen(USTOps.h.inc -gen-op-decls)
+mlir_tablegen(USTOps.cpp.inc -gen-op-defs)
+mlir_tablegen(USTDialect.h.inc -gen-dialect-decls)
+mlir_tablegen(USTDialect.cpp.inc -gen-dialect-defs)
+add_public_tablegen_target(MLIRUSTOpsIncGen)
+
+set(LLVM_TARGET_DEFINITIONS USTAttrs.td)
+mlir_tablegen(USTAttrs.h.inc -gen-attrdef-decls)
+mlir_tablegen(USTAttrs.cpp.inc -gen-attrdef-defs)
+add_public_tablegen_target(MLIRUSTAttrsIncGen)

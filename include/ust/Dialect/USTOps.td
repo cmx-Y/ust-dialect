@@ -9,6 +9,8 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def UST_Dialect : Dialect {
   let name = "ust";
+  let useDefaultTypePrinterParser = 1;
+  let useDefaultAttributePrinterParser = 1;
   let cppNamespace = "::mlir::ust";
 }
 
@@ -25,21 +27,5 @@ class UST_Attr<string mnemonic, list<Trait> traits = []> :
 // Toy Operations
 //===----------------------------------------------------------------------===//
 
-//===----------------------------------------------------------------------===//
-// PrintOp
-//===----------------------------------------------------------------------===//
-
-def PrintOp : UST_Op<"print"> {
-  let summary = "print operation";
-  let description = [{
-    The "print" builtin operation prints a given input tensor, and produces
-    no results.
-  }];
-
-  // The print operation takes an input tensor to print.
-  let arguments = (ins F64Tensor:$input);
-
-  let assemblyFormat = "$input attr-dict `:` type($input)";
-}
 
 #endif // UST_OPS

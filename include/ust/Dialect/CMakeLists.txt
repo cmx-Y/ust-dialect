@@ -5,6 +5,11 @@ mlir_tablegen(USTDialect.h.inc -gen-dialect-decls)
 mlir_tablegen(USTDialect.cpp.inc -gen-dialect-defs)
 add_public_tablegen_target(MLIRUSTOpsIncGen)
 
+set(LLVM_TARGET_DEFINITIONS USTTypes.td)
+mlir_tablegen(USTTypes.h.inc -gen-typedef-decls)
+mlir_tablegen(USTTypes.cpp.inc -gen-typedef-defs)
+add_public_tablegen_target(MLIRUSTTypesIncGen)
+
 set(LLVM_TARGET_DEFINITIONS USTAttrs.td)
 mlir_tablegen(USTAttrs.h.inc -gen-attrdef-decls)
 mlir_tablegen(USTAttrs.cpp.inc -gen-attrdef-defs)

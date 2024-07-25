@@ -24,7 +24,7 @@
 namespace mlir {
 namespace ust {
 void setSparseInfo(Operation *op, SparseInfoAttr sparseInfo);
-void setSparseInfo(Operation *op, int64_t posSize);
+void setSparseInfo(Operation *op, int64_t posSize, int64_t crdSize, int64_t valSize);
 }
 }
 

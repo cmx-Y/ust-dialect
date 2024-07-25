@@ -15,8 +15,8 @@ def SparseInfo : UST_Attr<"SparseInfo"> {
   }];
 
   let hasCustomAssemblyFormat = 1;
-  let mnemonic = "s";
-  let parameters = (ins "int64_t":$posSize);
+  let mnemonic = "sparse_info";
+  let parameters = (ins "int64_t":$posSize, "int64_t":$crdSize, "int64_t":$valSize);
 }
 
 #endif // UST_ATTRS

@@ -40,28 +40,35 @@ void ust::setSparseInfo(Operation *op, SparseInfoAttr sparseInfo) {
   op->setAttr("sparse_info", sparseInfo);
 }
 
-void ust::setSparseInfo(Operation *op, int64_t posSize) {
+void ust::setSparseInfo(Operation *op, int64_t posSize, int64_t crdSize, int64_t valSize) {
   auto sparseInfo =
-      SparseInfoAttr::get(op->getContext(), posSize);
+      SparseInfoAttr::get(op->getContext(), posSize, crdSize, valSize);
   setSparseInfo(op, sparseInfo);
 }
 
 Attribute SparseInfoAttr::parse(AsmParser &p, Type type) {
-  StringRef posSizeKw;
-  int64_t posSize;
+  StringRef posSizeKw, crdSizeKw, valSizeKw;
+  int64_t posSize, crdSize, valSize;
   if (p.parseLess() || p.parseKeyword(&posSizeKw) || p.parseEqual() ||
       p.parseInteger(posSize) || p.parseComma() ||
+      p.parseKeyword(&crdSizeKw) || p.parseEqual() ||
+      p.parseInteger(crdSize) || p.parseComma() ||
+      p.parseKeyword(&valSizeKw) || p.parseEqual() ||
+      p.parseInteger(valSize) || p.parseComma() ||
       p.parseGreater())
     return Attribute();
 
-  if (posSizeKw != "posSize")
+  if (posSizeKw != "posSize" ||
+      crdSizeKw != "crdSize" ||
+      valSizeKw != "valSize")
     return Attribute();
 
-  return SparseInfoAttr::get(p.getContext(), posSize);
+  return SparseInfoAttr::get(p.getContext(), posSize, crdSize, valSize);
 }
 
 void SparseInfoAttr::print(AsmPrinter &p) const {
-  p << "<posSize=" << getPosSize() << ">";
+  p << "<posSize=" << getPosSize() << ", "
+    << "crdSize=" << getCrdSize() << ", " << "valSize=" << getValSize() << ">";
 }
 
 #define GET_OP_CLASSES

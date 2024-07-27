@@ -6,12 +6,16 @@
 
 #include <iostream>
 
-#include "PassDetail.h"
 #include "ust/Transforms/Passes.h"
 
 #include "mlir/Pass/Pass.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/SCF/IR/SCF.h"
+
+namespace mlir {
+#define GEN_PASS_DEF_LOOPBOUNDCONSTANT
+#include "ust/Transforms/Passes.h.inc"
+} // namespace mlir
 
 using namespace mlir;
 using namespace ust;
@@ -121,7 +125,7 @@ bool applyLoopBoundConstant(ModuleOp &module) {
 
 namespace {
 struct USTLoopBoundConstantTransformation
-    : public LoopBoundConstantBase<USTLoopBoundConstantTransformation> {
+    : public impl::LoopBoundConstantBase<USTLoopBoundConstantTransformation> {
   void runOnOperation() override {
     auto mod = getOperation();
     if (!applyLoopBoundConstant(mod)) {

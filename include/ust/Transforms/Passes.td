@@ -14,4 +14,18 @@ def LoopBoundConstant : Pass<"loop-bound-const", "ModuleOp"> {
   let constructor = "mlir::ust::createLoopBoundConstantPass()";
 }
 
+def SetSparseInfo : Pass<"set-sparse-info", "ModuleOp"> {
+  let summary = "Set sparse info pass";
+  let constructor = "mlir::ust::createSetSparseInfoPass()";
+
+  let options = [
+    Option<"posSize", "pos-size", "unsigned", /*default=*/"1",
+           "Positive number: position array size">,
+    Option<"crdSize", "crd-size", "unsigned", /*default=*/"1",
+           "Positive number: coordinate array size">,
+    Option<"valSize", "val-size", "unsigned", /*default=*/"1",
+            "Positive number: value array size">,
+  ];
+}
+
 #endif // UST_MLIR_PASSES

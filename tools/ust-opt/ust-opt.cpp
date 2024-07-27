@@ -25,6 +25,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 
+#include "ust/Dialect/USTDialect.h"
 #include "ust/Transforms/Passes.h"
 
 #include <iostream>
@@ -57,6 +58,7 @@ int main(int argc, char **argv) {
   // Register dialects and passes in current context
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
+  registry.insert<mlir::ust::USTDialect>();
 
   mlir::MLIRContext context;
   context.appendDialectRegistry(registry);
@@ -82,6 +84,7 @@ int main(int argc, char **argv) {
   // Operation specific passes
   mlir::OpPassManager &optPM = pm.nest<mlir::func::FuncOp>();
   pm.addPass(mlir::ust::createLoopBoundConstantPass());
+  pm.addPass(mlir::ust::createSetSparseInfoPass(6, 6, 6));
 
   // Run the pass pipeline
   if (mlir::failed(pm.run(*module))) {

@@ -5,6 +5,8 @@
 include "ust/Dialect/USTOps.td"
 include "mlir/IR/EnumAttr.td"
 
+class UST_Attr<string mnemonic, list<Trait> traits = []> : 
+    AttrDef<UST_Dialect, mnemonic, traits>;
 
 def SparseInfo : UST_Attr<"SparseInfo"> {
   let summary = "Loop information";

@@ -1,6 +1,7 @@
 #sparse = #sparse_tensor.encoding<{ map = (d0, d1) -> (d0 : dense, d1 : compressed) }>
 module {
   func.func @matvec(%arg0: tensor<32x64xf64, #sparse>, %arg1: tensor<64xf64>, %arg2: tensor<32xf64>) -> tensor<32xf64> {
+    %s = ust.create_op_handle "s"
     %c1 = arith.constant 1 : index
     %c0 = arith.constant 0 : index
     %c32 = arith.constant 32 : index

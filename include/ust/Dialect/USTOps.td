@@ -2,30 +2,35 @@
 #ifndef UST_OPS
 #define UST_OPS
 
-include "mlir/IR/OpBase.td"
+include "ust/Dialect/USTDialect.td"
+include "ust/Dialect/USTTypes.td"
+include "ust/Dialect/USTAttrs.td"
+
+include "mlir/IR/BuiltinTypes.td"
 include "mlir/Interfaces/FunctionInterfaces.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def UST_Dialect : Dialect {
-  let name = "ust";
-  let useDefaultTypePrinterParser = 1;
-  let useDefaultAttributePrinterParser = 1;
-  let cppNamespace = "::mlir::ust";
-}
-
 class UST_Op<string mnemonic, list<Trait> traits = []> :
     Op<UST_Dialect, mnemonic, traits>;
 
-class UST_Type<string mnemonic, list<Trait> traits = []> : 
-    TypeDef<UST_Dialect, mnemonic, traits>;
+def UST_CreateOpHandleOp : UST_Op<"create_op_handle"> 
+{
+    let summary = "op handle";
+    let description = [{
+        Create a op handle
 
-class UST_Attr<string mnemonic, list<Trait> traits = []> : 
-    AttrDef<UST_Dialect, mnemonic, traits>;
+        Parameters
+        op_name (String) - The name of a op
+    }];
 
-//===----------------------------------------------------------------------===//
-// Toy Operations
-//===----------------------------------------------------------------------===//
+    let arguments = (ins StrAttr:$op_name);
+    let results = (outs OpHandle:$result);
+    let assemblyFormat = [{
+       $op_name attr-dict
+    }];
+}
+
 
 
 #endif // UST_OPS

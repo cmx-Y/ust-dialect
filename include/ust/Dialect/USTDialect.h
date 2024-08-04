@@ -9,17 +9,17 @@
 #include "mlir/Interfaces/FunctionInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
-/// Include the auto-generated header file containing the declaration of the toy
-/// dialect.
-#include "ust/Dialect/USTDialect.h.inc"
 
-/// Include the auto-generated header file containing the declarations of the
-/// toy operations.
-#define GET_OP_CLASSES
-#include "ust/Dialect/USTOps.h.inc"
+#include "ust/Dialect/USTDialect.h.inc"
 
 #define GET_ATTRDEF_CLASSES
 #include "ust/Dialect/USTAttrs.h.inc"
+
+#define GET_TYPEDEF_CLASSES
+#include "ust/Dialect/USTTypes.h.inc"
+
+#define GET_OP_CLASSES
+#include "ust/Dialect/USTOps.h.inc"
 
 namespace mlir {
 namespace ust {

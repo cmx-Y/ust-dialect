@@ -29,6 +29,10 @@ void USTDialect::initialize() {
 #define GET_OP_LIST
 #include "ust/Dialect/USTOps.cpp.inc"
       >();
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "ust/Dialect/USTTypes.cpp.inc"
+      >(); 
   addAttributes< 
 #define GET_ATTRDEF_LIST
 #include "ust/Dialect/USTAttrs.cpp.inc"

@@ -31,6 +31,23 @@ def UST_CreateOpHandleOp : UST_Op<"create_op_handle">
     }];
 }
 
+def UST_CreateLoopHandleOp : UST_Op<"create_loop_handle"> 
+{
+    let summary = "loop handle";
+    let description = [{
+        Create a loop handle
+
+        Parameters
+        loop_name (String) - The name of a loop
+    }];
+
+    let arguments = (ins OpHandle:$op, StrAttr:$loop_name);
+    let results = (outs LoopHandle:$result);
+    let assemblyFormat = [{
+       $op `,` $loop_name attr-dict
+    }];
+}
+
 
 
 #endif // UST_OPS

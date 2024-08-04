@@ -20,4 +20,9 @@ def OpHandle : UST_Type<"OpHandle"> {
   let mnemonic = "OpHandle";
 }
 
+def LoopHandle : UST_Type<"LoopHandle"> {
+  let summary = "loop handle";
+  let mnemonic = "LoopHandle";
+}
+
 #endif // UST_TYPES

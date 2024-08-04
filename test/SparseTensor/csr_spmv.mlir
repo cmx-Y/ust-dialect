@@ -2,6 +2,7 @@
 module {
   func.func @matvec(%arg0: tensor<32x64xf64, #sparse>, %arg1: tensor<64xf64>, %arg2: tensor<32xf64>) -> tensor<32xf64> {
     %s = ust.create_op_handle "s"
+    %li = ust.create_loop_handle %s, "i"
     %c1 = arith.constant 1 : index
     %c0 = arith.constant 0 : index
     %c32 = arith.constant 32 : index

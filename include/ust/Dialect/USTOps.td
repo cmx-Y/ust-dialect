@@ -48,6 +48,50 @@ def UST_CreateLoopHandleOp : UST_Op<"create_loop_handle">
     }];
 }
 
+def UST_UnrollOp : UST_Op<"unroll"> 
+{
+    let summary = "unroll";
+    let description = [{
+        ust.unroll(var, factor=0)
+
+        Unroll the iteration.
+
+        Parameters
+        * var (IterVar) - The iteration to be unrolled.
+        * factor (Expr) - The unroll factor. Default value 0 means full unroll.
+    }];
+
+    let arguments = (ins LoopHandle:$loop, OptionalAttr<DefaultValuedAttr<UI32Attr,"0">>:$factor);
+    let results = (outs );
+    let assemblyFormat = [{
+        `(` $loop (`,` $factor^)? `)` attr-dict
+    }];
+}
+
+def UST_PipelineOp : UST_Op<"pipeline"> 
+{
+    let summary = "pipeline";
+    let description = [{
+        ust.pipeline(var, initiation_interval=1)
+
+        Pipeline the iteration.
+
+        Parameters
+        * var (IterVar) - The iteration to be pipelined.
+        * initiation_interval (Expr) - The initiation interval in pipeline schedule. Default value is 1.
+    }];
+
+    let arguments = (ins LoopHandle:$loop, OptionalAttr<DefaultValuedAttr<UI32Attr, "1">>:$ii);
+    let results = (outs LoopHandle:$result);
+    let assemblyFormat = [{
+        `(` $loop (`,` $ii^)? `)` attr-dict
+    }];
+    let builders = [
+        OpBuilder<(ins "ust::LoopHandleType":$loop,
+                   CArg<"uint64_t", "1">:$ii)>
+    ];
+}
+
 
 
 #endif // UST_OPS
